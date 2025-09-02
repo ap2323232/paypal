@@ -3,7 +3,7 @@ import { getAccessToken, PP_BASE } from "../../_lib/paypal";
 import { corsResponse } from "../../_lib/cors";
 
 export async function OPTIONS() {
-  // Preflight response for browsers
+  // Preflight response for browsers response
   return corsResponse({}, 200);
 }
 export async function POST(req: Request) {
