@@ -8,7 +8,7 @@ export async function OPTIONS() {
 
 export async function POST(req: Request) {
   try {
-    const { amount, currency = "INR", donor, meta } = await req.json();
+    const { amount, currency = "USD", donor, meta } = await req.json();
 
     const value = Number(amount);
     if (!value || value <= 0) {
@@ -53,7 +53,17 @@ export async function POST(req: Request) {
 
     const data = await r.json();
     if (!r.ok) {
-      return corsResponse({ error: "create_order_failed", details: data }, 500);
+      // Surface PayPal’s error clearly to your browser console
+      return corsResponse(
+        {
+          error: "create_order_failed",
+          status: r.status,
+          name: data?.name,
+          message: data?.message,
+          details: data?.details,
+        },
+        500
+      );
     }
 
     const approveUrl = Array.isArray(data.links)
