@@ -10,12 +10,36 @@ export async function POST(req: Request) {
   try {
     const { amount, currency = "USD", donor, meta } = await req.json();
 
+    console.log("Creating PayPal order with:", {
+      amount,
+      currency,
+      donor,
+      meta,
+    });
+
     const value = Number(amount);
     if (!value || value <= 0) {
+      console.error("Invalid amount provided:", amount);
       return corsResponse({ error: "Invalid amount" }, 400);
     }
 
+    // Check environment variables
+    if (
+      !process.env.PP_BASE ||
+      !process.env.PP_CLIENT_ID ||
+      !process.env.PP_SECRET
+    ) {
+      console.error("Missing PayPal environment variables");
+      return corsResponse({ error: "PayPal configuration missing" }, 500);
+    }
+
+    if (!process.env.PAYPAL_RETURN_URL || !process.env.PAYPAL_CANCEL_URL) {
+      console.error("Missing PayPal return/cancel URLs");
+      return corsResponse({ error: "PayPal URLs not configured" }, 500);
+    }
+
     const access = await getAccessToken();
+    console.log("PayPal access token obtained successfully");
 
     const payload = {
       intent: "CAPTURE",
@@ -53,7 +77,12 @@ export async function POST(req: Request) {
 
     const data = await r.json();
     if (!r.ok) {
-      // Surface PayPal’s error clearly to your browser console
+      console.error("PayPal order creation failed:", {
+        status: r.status,
+        statusText: r.statusText,
+        data: data,
+      });
+      // Surface PayPal's error clearly to your browser console
       return corsResponse(
         {
           error: "create_order_failed",
@@ -65,6 +94,8 @@ export async function POST(req: Request) {
         500
       );
     }
+
+    console.log("PayPal order created successfully:", data.id);
 
     const approveUrl = Array.isArray(data.links)
       ? data.links.find((l: any) => l.rel === "approve")?.href
